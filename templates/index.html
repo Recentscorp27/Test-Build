@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Poetry Generator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Poetry Generator</h1>
+        <form method="post">
+            <label for="emotions">Enter emotions (comma separated):</label>
+            <input type="text" id="emotions" name="emotions" value="{{ request.form.emotions or '' }}">
+            <button type="submit">Create Poem</button>
+        </form>
+        {% if poem %}
+        <pre class="poem">{{ poem }}</pre>
+        {% endif %}
+    </div>
+</body>
+</html>
