@@ -21,4 +21,6 @@ python3 -m pip install Flask
 python3 web_app.py
 ```
 
-Then open `http://localhost:5000` in your browser to generate poems using a simple web form.
+Then open `http://localhost:5000` in your browser to generate poems using the web interface.
+
+The UI provides a single field where you can enter emotions separated by commas. After submitting the form, the generated poem will appear below.
