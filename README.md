@@ -12,30 +12,54 @@ This project provides a secure Express.js backend to support Claim Climbers' vet
 - Pino logging and graceful shutdown
 - Example GHL API helper
 
-## Setup
+## Local Setup
 
-1. **Clone the repository** and install dependencies
+1. **Clone the repository**
    ```bash
-   git clone <repo-url>
+   git clone https://github.com/yourorg/claim-climbers-platform
    cd Test-Build
+   ```
+2. **Install dependencies** using [Node.js 18+](https://nodejs.org/en/download/)
+   ```bash
    npm install
    ```
-2. **Create a `.env` file** from the sample and add your secrets
+3. **Create a `.env` file** from the sample and add your secrets
    ```bash
    cp .env.example .env
    ```
    Set `JWT_SECRET`, `MONGODB_URI`, `CLIENT_URL`, and your GHL credentials.
-3. **Run the server**
+4. **Run the server**
    ```bash
    npm start
    ```
    The API listens on `http://localhost:3000`.
 
 Use `npm run dev` during development for automatic reloads. Run `npm test` to execute Jest-based API tests.
+## Cloud Deployment
+
+1. Set environment variables on your server (see `.env.example`).
+2. Point `CLIENT_URL` to your production front-end domain.
+3. Run `npm install --production` then `node src/server.js` via a process manager like pm2.
+4. Ensure port `$PORT` is open on your firewall or load balancer.
+5. If terminating HTTPS elsewhere, enable TLS on that proxy.
+
 
 ## GHL API Integration
 
-The GoHighLevel API uses an API key. Include your key in `GHL_API_KEY` and base URL in `GHL_BASE_URL`.
+All claim actions are mirrored to [GoHighLevel](https://developers.gohighlevel.com/).
+Create an API key from your agency dashboard at <https://app.gohighlevel.com/>
+(Settings → API Keys) and place it in `GHL_API_KEY`. Use
+`https://api.gohighlevel.com` for `GHL_BASE_URL`.
+
+### Common endpoints
+
+- `POST /v1/contacts/` – create a client record
+- `PATCH /v1/contacts/:id` – update client status
+- `POST /v1/tasks/` – assign tasks
+- `POST /v1/notes/` – attach notes or files
+- `POST /v1/conversations/messages/` – send a message
+- `GET /v1/appointments/` – list scheduled appointments
+
 Example helper:
 
 ```javascript
@@ -49,17 +73,24 @@ async function createContact(data) {
     },
     body: JSON.stringify(data)
   });
-  if (!res.ok) throw new Error('GHL error');
+  if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
 ```
 
-Refer to the [GHL docs](https://developers.gohighlevel.com/) for more endpoints.
+Consult the official docs for payload formats and required scopes.
+API errors are logged with Pino and surfaced to admins.
+
+### Extending
+
+See the service modules in `src/services/` for examples of calling GHL.
+Add new helpers as you integrate additional API features.
 
 ## Troubleshooting
 
+- Verify you are running Node.js 18 or newer.
+- Ensure MongoDB is accessible from your environment.
 - Ensure all environment variables are defined. The app will not start if any are missing.
-- Confirm MongoDB is running and the connection string is correct.
 - Check API responses from GHL when syncing data.
 
 ## License
