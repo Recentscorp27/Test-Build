@@ -4,25 +4,43 @@ const helmet = require('helmet');
 const mongoose = require('mongoose');
 const morgan = require('morgan');
 const compression = require('compression');
+const session = require('express-session');
 const pino = require('pino');
+const path = require('path');
 const config = require('./config');
 const authRoutes = require('./routes/auth');
 
 const logger = pino();
 const app = express();
+app.set('trust proxy', 1);
 
-app.use(helmet({
-  contentSecurityPolicy: false,
-  referrerPolicy: { policy: 'no-referrer' },
-  crossOriginResourcePolicy: { policy: 'same-site' }
-}));
-app.use(cors({ origin: config.CLIENT_URL }));
-app.use(morgan('combined'));
+app.use(helmet());
+app.use(morgan('dev'));
 app.use(compression());
 app.use(express.json({ limit: '100kb' }));
+app.use(cors({
+  origin:      config.CLIENT_URL,
+  methods:     ['GET','POST','PUT','DELETE','OPTIONS'],
+  credentials: true
+}));
+app.use(session({
+  secret: config.JWT_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    secure: config.NODE_ENV === 'production',
+    sameSite: 'strict'
+  }
+}));
 
 app.use('/api/v1/auth', authRoutes);
 app.get('/health', (req, res) => res.json({ success: true, data: { status: 'ok' } }));
+
+app.use(express.static(path.join(__dirname, '../client/build')));
+app.use((req, res) =>
+  res.sendFile(path.join(__dirname, '../client/build/index.html'))
+);
 
 app.use((req, res) => {
   res.status(404).json({ success: false, error: 'Not found' });
