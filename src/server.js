@@ -1,41 +1,20 @@
-const express = require('express');
-const session = require('express-session');
-const cors = require('cors');
-const helmet = require('helmet');
+const http = require('http');
 const mongoose = require('mongoose');
-const morgan = require('morgan');
-const compression = require('compression');
+const { app, connectDB, logger } = require('./app');
 const config = require('./config');
-const authRoutes = require('./routes/auth');
 
-const app = express();
+(async () => {
+  await connectDB();
+  const server = http.createServer(app);
+  server.listen(config.PORT, () => logger.info(`Server running on port ${config.PORT}`));
 
-mongoose.connect(config.mongodbUri, { useNewUrlParser: true, useUnifiedTopology: true })
-  .catch(err => {
-    console.error('MongoDB connection error', err);
-    process.exit(1);
-  });
+  const shutdown = () => {
+    logger.info('Graceful shutdown');
+    server.close(() => {
+      mongoose.disconnect().then(() => process.exit(0));
+    });
+  };
 
-app.use(helmet());
-app.use(cors());
-app.use(morgan('dev'));
-app.use(compression());
-app.use(express.json({ limit: '100kb' }));
-app.use(session({
-  secret: config.sessionSecret,
-  resave: false,
-  saveUninitialized: false,
-  cookie: { httpOnly: true, secure: config.nodeEnv === 'production' }
-}));
-
-app.use('/api/v1/auth', authRoutes);
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
-
-app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(500).json({ error: 'Internal Server Error' });
-});
-
-app.listen(config.port, () => {
-  console.log(`Server running on port ${config.port}`);
-});
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
+})();

@@ -1,14 +1,17 @@
 const path = require('path');
 const dotenvSafe = require('dotenv-safe');
+const { cleanEnv, str, num, url } = require('envalid');
 
 dotenvSafe.config({ example: path.resolve(__dirname, '../.env.example') });
 
-module.exports = {
-  port: process.env.PORT,
-  sessionSecret: process.env.SESSION_SECRET,
-  jwtSecret: process.env.JWT_SECRET,
-  mongodbUri: process.env.MONGODB_URI,
-  ghlApiKey: process.env.GHL_API_KEY,
-  ghlBaseUrl: process.env.GHL_BASE_URL,
-  nodeEnv: process.env.NODE_ENV || 'development'
-};
+const env = cleanEnv(process.env, {
+  NODE_ENV: str({ choices: ['development', 'production', 'test'], default: 'development' }),
+  PORT: num({ default: 3000 }),
+  JWT_SECRET: str(),
+  MONGODB_URI: str(),
+  GHL_API_KEY: str(),
+  GHL_BASE_URL: url(),
+  CLIENT_URL: str()
+});
+
+module.exports = env;

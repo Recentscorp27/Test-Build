@@ -1,14 +1,15 @@
 # Claim Climbers Platform
 
-This project provides a secure Express.js backend to support Claim Climbers' veteran clients. It demonstrates two-factor authentication and JWT-based sessions with MongoDB persistence. The code also includes starter instructions for integrating the GoHighLevel (GHL) API.
+This project provides a secure Express.js backend to support Claim Climbers' veteran clients. It demonstrates two-factor authentication and JWT-based auth with MongoDB persistence. The code also includes starter instructions for integrating the GoHighLevel (GHL) API.
 
 ## Features
 
 - Registration with TOTP QR code
 - Login issuing JWT tokens (1 hour expiry)
 - MongoDB user store
-- Environment validation with `dotenv-safe`
-- Security middleware (Helmet, rate limiting, secure cookies)
+- Environment validation with `dotenv-safe` and `envalid`
+- Security middleware (Helmet, CORS restrictions, rate limiting)
+- Pino logging and graceful shutdown
 - Example GHL API helper
 
 ## Setup
@@ -23,14 +24,14 @@ This project provides a secure Express.js backend to support Claim Climbers' vet
    ```bash
    cp .env.example .env
    ```
-   Set `SESSION_SECRET`, `JWT_SECRET`, `MONGODB_URI`, and your GHL credentials.
+   Set `JWT_SECRET`, `MONGODB_URI`, `CLIENT_URL`, and your GHL credentials.
 3. **Run the server**
    ```bash
    npm start
    ```
    The API listens on `http://localhost:3000`.
 
-Use `npm run dev` during development for automatic reloads.
+Use `npm run dev` during development for automatic reloads. Run `npm test` to execute Jest-based API tests.
 
 ## GHL API Integration
 
