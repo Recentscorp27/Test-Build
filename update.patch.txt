@@ -25,10 +25,10 @@ index 0000000000000000000000000000000000000000..dfe66a3c9c47427cb788684b3312e2a7
 +client/public/*.ico
 +uploads/
 diff --git a/README.md b/README.md
-index 7257cb58cd1b8b5a57c8547b7343c841b42ed859..5f3792dd108c470711feb542750989741ac6ea70 100644
+index 7257cb58cd1b8b5a57c8547b7343c841b42ed859..5b62e8b8bdb754bf6b7138258d2797f5146abbd1 100644
 --- a/README.md
 +++ b/README.md
-@@ -1 +1,111 @@
+@@ -1 +1,120 @@
 -# Test-Build
 \ No newline at end of file
 +# Claim Climbers Platform
@@ -39,6 +39,8 @@ index 7257cb58cd1b8b5a57c8547b7343c841b42ed859..5f3792dd108c470711feb54275098974
 +
 +- Registration with TOTP QR code
 +- Login issuing JWT tokens (1 hour expiry)
++- Password reset with TOTP verification
++- Logout endpoint to discard tokens on the client
 +- MongoDB user store
 +- Environment validation with `dotenv-safe` and `envalid`
 +- Security middleware (Helmet, CORS restrictions, rate limiting)
@@ -80,7 +82,14 @@ index 7257cb58cd1b8b5a57c8547b7343c841b42ed859..5f3792dd108c470711feb54275098974
 +   npm run client-build
 +   ```
 +
-+Use `npm run dev` during development for automatic reloads. Run `npm test` to execute Jest-based API tests.
++Use `npm run dev` during development for automatic reloads. Run `npm test` to execute Jest-based API tests. The Jest configuration automatically loads variables from `.env.example` so no additional setup is required.
++
++### Authentication Flow
++
++1. `POST /api/v1/auth/register` – supply a username and password. The response includes a `qr` image URL. Scan this with Google Authenticator or Authy to set up two-factor codes.
++2. `POST /api/v1/auth/login` – send username, password, and a current TOTP code to receive a JWT.
++3. `POST /api/v1/auth/logout` – stateless endpoint; simply discard the JWT on the client.
++4. `POST /api/v1/auth/reset-password` – provide username, new password, and valid TOTP code to change a forgotten password.
 +## Cloud Deployment
 +
 +1. Set environment variables on your server (see `.env.example`).
@@ -17655,10 +17664,10 @@ index 0000000000000000000000000000000000000000..2fff5663ec7168b67e9c3274e54becfb
 +</html>
 diff --git a/client/src/App.js b/client/src/App.js
 new file mode 100644
-index 0000000000000000000000000000000000000000..64f99d52eeea5a462092107c60c8d30844e2331d
+index 0000000000000000000000000000000000000000..2acd4f16fb2e0ae9de85d982d6cd36dab194fd52
 --- /dev/null
 +++ b/client/src/App.js
-@@ -0,0 +1,32 @@
+@@ -0,0 +1,34 @@
 +import React from 'react';
 +import { Routes, Route } from 'react-router-dom';
 +import Home from './pages/Home';
@@ -17669,6 +17678,7 @@ index 0000000000000000000000000000000000000000..64f99d52eeea5a462092107c60c8d308
 +import Resources from './pages/Resources';
 +import Support from './pages/Support';
 +import Upload from './pages/Upload';
++import AdminPage from './pages/AdminPage';
 +import Header from './components/Header';
 +
 +export default function App() {
@@ -17685,6 +17695,7 @@ index 0000000000000000000000000000000000000000..64f99d52eeea5a462092107c60c8d308
 +          <Route path="/resources" element={<Resources />} />
 +          <Route path="/support" element={<Support />} />
 +          <Route path="/upload" element={<Upload />} />
++          <Route path="/admin" element={<AdminPage />} />
 +          <Route path="*" element={<Home />} />
 +        </Routes>
 +      </main>
@@ -17738,10 +17749,10 @@ index 0000000000000000000000000000000000000000..9f978dcbff7e30f747fb3e54cab5a2e4
 +}
 diff --git a/client/src/components/Header.js b/client/src/components/Header.js
 new file mode 100644
-index 0000000000000000000000000000000000000000..e7c67fd00e74a69f1195e06db7379b93bf37afd9
+index 0000000000000000000000000000000000000000..8ea8466ee86f948a191842ac2a7e3f80e0e06065
 --- /dev/null
 +++ b/client/src/components/Header.js
-@@ -0,0 +1,20 @@
+@@ -0,0 +1,23 @@
 +import React from 'react';
 +import { Link } from 'react-router-dom';
 +
@@ -17754,6 +17765,9 @@ index 0000000000000000000000000000000000000000..e7c67fd00e74a69f1195e06db7379b93
 +      <nav className="space-x-4">
 +        <Link to="/upload" className="underline">
 +          Upload
++        </Link>
++        <Link to="/admin" className="underline">
++          Admin
 +        </Link>
 +        <Link to="/login" className="underline">
 +          Login
@@ -17879,13 +17893,30 @@ index 0000000000000000000000000000000000000000..722989ffa0c3ca7786d593154f8b3869
 +];
 diff --git a/client/src/index.css b/client/src/index.css
 new file mode 100644
-index 0000000000000000000000000000000000000000..b5c61c956711f981a41e95f7fcf0038436cfbb22
+index 0000000000000000000000000000000000000000..ebca33482a40694aad401aa398cb851a6e012ef5
 --- /dev/null
 +++ b/client/src/index.css
-@@ -0,0 +1,3 @@
+@@ -0,0 +1,20 @@
 +@tailwind base;
 +@tailwind components;
 +@tailwind utilities;
++
++:root {
++  --primary: #1e40af;
++  --secondary: #2563eb;
++}
++
++.dropdown-header {
++  color: #fff;
++  transition: background-color 0.3s ease;
++}
++.dropdown-header:hover {
++  background-color: var(--secondary);
++}
++.dropdown-content {
++  overflow: hidden;
++  transition: max-height 0.3s ease;
++}
 diff --git a/client/src/index.js b/client/src/index.js
 new file mode 100644
 index 0000000000000000000000000000000000000000..99458026ab5878b6567e6e35db86ce3c8bb875b9
@@ -17922,6 +17953,109 @@ index 0000000000000000000000000000000000000000..e889d92301256af2a5dcc3d99d838c5c
 +    <div>
 +      {/* TODO: fetch /api/v1/account */}
 +      <p>Account settings placeholder.</p>
++    </div>
++  );
++}
+diff --git a/client/src/pages/AdminPage.js b/client/src/pages/AdminPage.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..891f584167597474fc32b57008a19e18f46a9de2
+--- /dev/null
++++ b/client/src/pages/AdminPage.js
+@@ -0,0 +1,97 @@
++import React, { useState } from 'react';
++import { connectIntegration } from '../services/connectIntegration';
++
++const INTEGRATIONS = ['GoHighLevel', 'Stripe', 'DrapCode', 'AWS', 'HealthBank1'];
++
++export default function AdminPage() {
++  const [open, setOpen] = useState(null);
++  const [configs, setConfigs] = useState({});
++
++  const toggle = (name) => {
++    setOpen(open === name ? null : name);
++  };
++
++  const handleChange = (name, field, value) => {
++    setConfigs((prev) => ({
++      ...prev,
++      [name]: { ...(prev[name] || { environment: 'Test' }), [field]: value },
++    }));
++  };
++
++  const handleConnect = async (name) => {
++    const cfg = configs[name] || {};
++    if (!cfg.apiKey || !cfg.apiSecret) {
++      alert('API Key and Secret required');
++      return;
++    }
++    try {
++      await connectIntegration(name.toLowerCase(), cfg);
++      alert('Connected');
++    } catch (err) {
++      console.error(err);
++      alert('Connection failed');
++    }
++  };
++
++  return (
++    <div className="p-4 space-y-4 w-full" aria-label="Admin integrations">
++      <h2 className="text-2xl font-semibold">Admin</h2>
++      {INTEGRATIONS.map((name) => {
++        const isOpen = open === name;
++        const cfg = configs[name] || { apiKey: '', apiSecret: '', environment: 'Test' };
++        return (
++          <div key={name} className="border rounded">
++            <button
++              className="w-full text-left dropdown-header font-medium"
++              style={{ background: 'var(--primary)' }}
++              onClick={() => toggle(name)}
++            >
++              {name}
++            </button>
++            <div
++              className="dropdown-content bg-gray-50"
++              style={{ maxHeight: isOpen ? '500px' : '0' }}
++            >
++              <div className="p-4 space-y-2">
++                <label className="block text-sm">
++                  API Key
++                  <input
++                    className="border p-2 w-full"
++                    value={cfg.apiKey}
++                    onChange={(e) => handleChange(name, 'apiKey', e.target.value)}
++                  />
++                </label>
++                <label className="block text-sm">
++                  API Secret
++                  <input
++                    className="border p-2 w-full"
++                    value={cfg.apiSecret}
++                    onChange={(e) => handleChange(name, 'apiSecret', e.target.value)}
++                  />
++                </label>
++                <label className="block text-sm">
++                  Environment
++                  <select
++                    className="border p-2 w-full"
++                    value={cfg.environment}
++                    onChange={(e) => handleChange(name, 'environment', e.target.value)}
++                  >
++                    <option>Test</option>
++                    <option>Production</option>
++                  </select>
++                </label>
++                <button
++                  className="px-4 py-2 text-white rounded"
++                  style={{ background: 'var(--secondary)' }}
++                  onClick={() => handleConnect(name)}
++                >
++                  Connect
++                </button>
++              </div>
++            </div>
++          </div>
++        );
++      })}
 +    </div>
 +  );
 +}
@@ -18292,6 +18426,24 @@ index 0000000000000000000000000000000000000000..8190a5b6e50d95f6ab4e9e5c11d1c26f
 +    </form>
 +  );
 +}
+diff --git a/client/src/services/connectIntegration.js b/client/src/services/connectIntegration.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..7b2f236dbaa2e7022d0f25ee78cb91eaa706f808
+--- /dev/null
++++ b/client/src/services/connectIntegration.js
+@@ -0,0 +1,12 @@
++export async function connectIntegration(name, config) {
++  const res = await fetch(`/api/admin/integrations/${encodeURIComponent(name)}`, {
++    method: 'POST',
++    headers: { 'Content-Type': 'application/json' },
++    body: JSON.stringify(config)
++  });
++  if (!res.ok) {
++    const text = await res.text();
++    throw new Error(text);
++  }
++  return res.json();
++}
 diff --git a/client/tailwind.config.js b/client/tailwind.config.js
 new file mode 100644
 index 0000000000000000000000000000000000000000..26cde680f8424dc4131e9eabff66ca854f00a671
@@ -18305,12 +18457,22 @@ index 0000000000000000000000000000000000000000..26cde680f8424dc4131e9eabff66ca85
 +  },
 +  plugins: [],
 +};
+diff --git a/jest.config.js b/jest.config.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..18c9a3f4e01a1b7e564eb928bfef63b97c92217f
+--- /dev/null
++++ b/jest.config.js
+@@ -0,0 +1,4 @@
++module.exports = {
++  testEnvironment: 'node',
++  setupFiles: ['<rootDir>/tests/setupEnv.js']
++};
 diff --git a/package-lock.json b/package-lock.json
 new file mode 100644
-index 0000000000000000000000000000000000000000..ef1cf61bad30dff481a5e0e082fbb8afeddc7880
+index 0000000000000000000000000000000000000000..5f4f37c88c296fb966e58ffe06a25a03b9c5b182
 --- /dev/null
 +++ b/package-lock.json
-@@ -0,0 +1,6591 @@
+@@ -0,0 +1,6529 @@
 +{
 +  "name": "test-build",
 +  "version": "1.0.0",
@@ -18331,7 +18493,6 @@ index 0000000000000000000000000000000000000000..ef1cf61bad30dff481a5e0e082fbb8af
 +        "envalid": "^8.0.0",
 +        "express": "^5.1.0",
 +        "express-rate-limit": "^7.5.0",
-+        "express-session": "^1.18.1",
 +        "helmet": "^8.1.0",
 +        "joi": "^17.13.3",
 +        "jsonwebtoken": "^9.0.2",
@@ -21147,46 +21308,6 @@ index 0000000000000000000000000000000000000000..ef1cf61bad30dff481a5e0e082fbb8af
 +        "express": "^4.11 || 5 || ^5.0.0-beta.1"
 +      }
 +    },
-+    "node_modules/express-session": {
-+      "version": "1.18.1",
-+      "resolved": "https://registry.npmjs.org/express-session/-/express-session-1.18.1.tgz",
-+      "integrity": "sha512-a5mtTqEaZvBCL9A9aqkrtfz+3SMDhOVUnjafjo+s7A9Txkq+SVX2DLvSp1Zrv4uCXa3lMSK3viWnh9Gg07PBUA==",
-+      "license": "MIT",
-+      "dependencies": {
-+        "cookie": "0.7.2",
-+        "cookie-signature": "1.0.7",
-+        "debug": "2.6.9",
-+        "depd": "~2.0.0",
-+        "on-headers": "~1.0.2",
-+        "parseurl": "~1.3.3",
-+        "safe-buffer": "5.2.1",
-+        "uid-safe": "~2.1.5"
-+      },
-+      "engines": {
-+        "node": ">= 0.8.0"
-+      }
-+    },
-+    "node_modules/express-session/node_modules/cookie-signature": {
-+      "version": "1.0.7",
-+      "resolved": "https://registry.npmjs.org/cookie-signature/-/cookie-signature-1.0.7.tgz",
-+      "integrity": "sha512-NXdYc3dLr47pBkpUCHtKSwIOQXLVn8dZEuywboCOJY/osA0wFSLlSawr3KN8qXJEyX66FcONTH8EIlVuK0yyFA==",
-+      "license": "MIT"
-+    },
-+    "node_modules/express-session/node_modules/debug": {
-+      "version": "2.6.9",
-+      "resolved": "https://registry.npmjs.org/debug/-/debug-2.6.9.tgz",
-+      "integrity": "sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA==",
-+      "license": "MIT",
-+      "dependencies": {
-+        "ms": "2.0.0"
-+      }
-+    },
-+    "node_modules/express-session/node_modules/ms": {
-+      "version": "2.0.0",
-+      "resolved": "https://registry.npmjs.org/ms/-/ms-2.0.0.tgz",
-+      "integrity": "sha512-Tpp60P6IUJDTuOq/5Z8cdskzJujfwqfOTkrwIwj7IRISpnkJnT6SyJ4PCPnGMoFjC9ddhal5KVIYtAt97ix05A==",
-+      "license": "MIT"
-+    },
 +    "node_modules/fast-json-stable-stringify": {
 +      "version": "2.1.0",
 +      "resolved": "https://registry.npmjs.org/fast-json-stable-stringify/-/fast-json-stable-stringify-2.1.0.tgz",
@@ -23799,15 +23920,6 @@ index 0000000000000000000000000000000000000000..ef1cf61bad30dff481a5e0e082fbb8af
 +      "integrity": "sha512-tYC1Q1hgyRuHgloV/YXs2w15unPVh8qfu/qCTfhTYamaw7fyhumKa2yGpdSo87vY32rIclj+4fWYQXUMs9EHvg==",
 +      "license": "MIT"
 +    },
-+    "node_modules/random-bytes": {
-+      "version": "1.0.0",
-+      "resolved": "https://registry.npmjs.org/random-bytes/-/random-bytes-1.0.0.tgz",
-+      "integrity": "sha512-iv7LhNVO047HzYR3InF6pUcUsPQiHTM1Qal51DcGSuZFBil1aBBWG5eHPNek7bvILMaYJ/8RU1e8w1AMdHmLQQ==",
-+      "license": "MIT",
-+      "engines": {
-+        "node": ">= 0.8"
-+      }
-+    },
 +    "node_modules/range-parser": {
 +      "version": "1.2.1",
 +      "resolved": "https://registry.npmjs.org/range-parser/-/range-parser-1.2.1.tgz",
@@ -24594,18 +24706,6 @@ index 0000000000000000000000000000000000000000..ef1cf61bad30dff481a5e0e082fbb8af
 +      "integrity": "sha512-/aCDEGatGvZ2BIk+HmLf4ifCJFwvKFNb9/JeZPMulfgFracn9QFcAf5GO8B/mweUjSoblS5In0cWhqpfs/5PQA==",
 +      "license": "MIT"
 +    },
-+    "node_modules/uid-safe": {
-+      "version": "2.1.5",
-+      "resolved": "https://registry.npmjs.org/uid-safe/-/uid-safe-2.1.5.tgz",
-+      "integrity": "sha512-KPHm4VL5dDXKz01UuEd88Df+KzynaohSL9fBh096KWAxSKZQDI2uBrVqtvRM4rwrIrRRKsdLNML/lnaaVSRioA==",
-+      "license": "MIT",
-+      "dependencies": {
-+        "random-bytes": "~1.0.0"
-+      },
-+      "engines": {
-+        "node": ">= 0.8"
-+      }
-+    },
 +    "node_modules/undefsafe": {
 +      "version": "2.0.5",
 +      "resolved": "https://registry.npmjs.org/undefsafe/-/undefsafe-2.0.5.tgz",
@@ -24904,10 +25004,10 @@ index 0000000000000000000000000000000000000000..ef1cf61bad30dff481a5e0e082fbb8af
 +}
 diff --git a/package.json b/package.json
 new file mode 100644
-index 0000000000000000000000000000000000000000..f38e57bef7a71986476e654b1f2447e7f439925a
+index 0000000000000000000000000000000000000000..17ec856b250ded354b9aff9a1e804d1e08de30c6
 --- /dev/null
 +++ b/package.json
-@@ -0,0 +1,44 @@
+@@ -0,0 +1,43 @@
 +{
 +  "name": "test-build",
 +  "version": "1.0.0",
@@ -24931,20 +25031,19 @@ index 0000000000000000000000000000000000000000..f38e57bef7a71986476e654b1f2447e7
 +    "cors": "^2.8.5",
 +    "dotenv": "^16.5.0",
 +    "dotenv-safe": "^9.1.0",
++    "envalid": "^8.0.0",
 +    "express": "^5.1.0",
 +    "express-rate-limit": "^7.5.0",
-+    "express-session": "^1.18.1",
 +    "helmet": "^8.1.0",
++    "joi": "^17.13.3",
 +    "jsonwebtoken": "^9.0.2",
 +    "mongoose": "^8.15.1",
 +    "morgan": "^1.10.0",
++    "multer": "^1.4.5-lts.1",
 +    "nodemailer": "^7.0.3",
-+    "qrcode": "^1.5.4",
-+    "speakeasy": "^2.0.0",
-+    "envalid": "^8.0.0",
-+    "joi": "^17.13.3",
 +    "pino": "^9.7.0",
-+    "multer": "^1.4.5-lts.1"
++    "qrcode": "^1.5.4",
++    "speakeasy": "^2.0.0"
 +  },
 +  "devDependencies": {
 +    "jest": "^30.0.0",
@@ -24952,26 +25051,25 @@ index 0000000000000000000000000000000000000000..f38e57bef7a71986476e654b1f2447e7
 +    "supertest": "^7.1.1"
 +  }
 +}
-\ No newline at end of file
 diff --git a/src/app.js b/src/app.js
 new file mode 100644
-index 0000000000000000000000000000000000000000..34a65e34f8e05ef5292df7bf4e3f71b49b36054c
+index 0000000000000000000000000000000000000000..cb29004ad31830a1091755e80966a25e316020e0
 --- /dev/null
 +++ b/src/app.js
-@@ -0,0 +1,63 @@
+@@ -0,0 +1,54 @@
 +const express = require('express');
 +const cors = require('cors');
 +const helmet = require('helmet');
 +const mongoose = require('mongoose');
 +const morgan = require('morgan');
 +const compression = require('compression');
-+const session = require('express-session');
 +const pino = require('pino');
 +const path = require('path');
 +const config = require('./config');
 +const authRoutes = require('./routes/auth');
 +const claimsRoutes = require('./routes/claims');
 +const uploadRoutes = require('./routes/upload');
++const adminRoutes = require('./routes/admin');
 +
 +const logger = pino();
 +const app = express();
@@ -24986,20 +25084,11 @@ index 0000000000000000000000000000000000000000..34a65e34f8e05ef5292df7bf4e3f71b4
 +  methods:     ['GET','POST','PUT','DELETE','OPTIONS'],
 +  credentials: true
 +}));
-+app.use(session({
-+  secret: config.JWT_SECRET,
-+  resave: false,
-+  saveUninitialized: false,
-+  cookie: {
-+    httpOnly: true,
-+    secure: config.NODE_ENV === 'production',
-+    sameSite: 'strict'
-+  }
-+}));
 +
 +app.use('/api/v1/auth', authRoutes);
 +app.use('/api/v1/claims', claimsRoutes);
 +app.use('/api/v1/upload', uploadRoutes);
++app.use('/api/admin', adminRoutes);
 +app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 +app.get('/health', (req, res) => res.json({ success: true, data: { status: 'ok' } }));
 +
@@ -25080,12 +25169,35 @@ index 0000000000000000000000000000000000000000..fc611ac78cb683da5da8a28b0c905d3a
 +});
 +
 +module.exports = mongoose.model('User', userSchema);
+diff --git a/src/routes/admin.js b/src/routes/admin.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..1b5b2e4dd14e299c5004d468bfdde4f273b106f9
+--- /dev/null
++++ b/src/routes/admin.js
+@@ -0,0 +1,17 @@
++const express = require('express');
++
++const router = express.Router();
++const ALLOWED = ['gohighlevel', 'stripe', 'drapcode', 'aws', 'healthbank1'];
++
++router.post('/integrations/:name', (req, res) => {
++  const { name } = req.params;
++  const { apiKey, apiSecret, environment } = req.body;
++  if (!ALLOWED.includes(name.toLowerCase())) {
++    return res.status(400).json({ success: false, error: 'Invalid integration' });
++  }
++  // TODO: persist integration config to DB or environment
++  console.log('Integration config received', { name, apiKey, apiSecret, environment });
++  res.json({ success: true, name });
++});
++
++module.exports = router;
 diff --git a/src/routes/auth.js b/src/routes/auth.js
 new file mode 100644
-index 0000000000000000000000000000000000000000..6ff6e27bd2fd6b47af123d278d068907dfd0b1e4
+index 0000000000000000000000000000000000000000..d7204532b509e8505ce48d2b1a8c8e7948f1bcfc
 --- /dev/null
 +++ b/src/routes/auth.js
-@@ -0,0 +1,51 @@
+@@ -0,0 +1,75 @@
 +const express = require('express');
 +const bcrypt = require('bcryptjs');
 +const jwt = require('jsonwebtoken');
@@ -25108,6 +25220,12 @@ index 0000000000000000000000000000000000000000..6ff6e27bd2fd6b47af123d278d068907
 +const loginSchema = Joi.object({
 +  username: Joi.string().required(),
 +  password: Joi.string().required(),
++  token: Joi.string().required()
++});
++
++const resetSchema = Joi.object({
++  username: Joi.string().required(),
++  password: Joi.string().min(6).required(),
 +  token: Joi.string().required()
 +});
 +
@@ -25136,14 +25254,34 @@ index 0000000000000000000000000000000000000000..6ff6e27bd2fd6b47af123d278d068907
 +  res.json({ success: true, data: { token: accessToken } });
 +}));
 +
++router.post('/logout', (req, res) => {
++  // JWT auth is stateless; client should discard the token
++  res.json({ success: true });
++});
++
++router.post('/reset-password', authLimiter, asyncHandler(async (req, res) => {
++  const { value, error } = resetSchema.validate(req.body);
++  if (error) return res.status(400).json({ success: false, error: error.message });
++  const { username, password, token } = value;
++  const user = await userService.findByUsername(username);
++  if (!user) return res.status(404).json({ success: false, error: 'User not found' });
++  const verified = speakeasy.totp.verify({ secret: user.totpSecret, encoding: 'base32', token });
++  if (!verified) return res.status(401).json({ success: false, error: 'Invalid token' });
++  user.passwordHash = await bcrypt.hash(password, 10);
++  await user.save();
++  res.json({ success: true });
++}));
++
 +module.exports = router;
 diff --git a/src/routes/claims.js b/src/routes/claims.js
 new file mode 100644
-index 0000000000000000000000000000000000000000..9302b91eb2f98926c175e3b85c9bb977b7142036
+index 0000000000000000000000000000000000000000..15b3a4df6b077f87d0f2a8202c998d4ac898daaa
 --- /dev/null
 +++ b/src/routes/claims.js
-@@ -0,0 +1,14 @@
+@@ -0,0 +1,16 @@
 +const express = require('express');
++
++const auth = require('../middleware/auth');
 +
 +const router = express.Router();
 +
@@ -25152,21 +25290,23 @@ index 0000000000000000000000000000000000000000..9302b91eb2f98926c175e3b85c9bb977
 +  { id: 2, title: 'Hearing Loss', status: 'Letter', updated: '2025-05-20' }
 +];
 +
-+router.get('/', (req, res) => {
++router.get('/', auth, (req, res) => {
 +  res.json({ success: true, data: sampleClaims });
 +});
 +
 +module.exports = router;
 diff --git a/src/routes/upload.js b/src/routes/upload.js
 new file mode 100644
-index 0000000000000000000000000000000000000000..029b2d7ea1e031778b7195f6c47fad3bdb48f1cf
+index 0000000000000000000000000000000000000000..c245c46d684e308b5c13723edd481ae43aff12a7
 --- /dev/null
 +++ b/src/routes/upload.js
-@@ -0,0 +1,33 @@
+@@ -0,0 +1,48 @@
 +const express = require('express');
 +const multer = require('multer');
 +const fs = require('fs');
 +const path = require('path');
++
++const auth = require('../middleware/auth');
 +
 +const uploadsDir = path.join(__dirname, '../../uploads');
 +fs.mkdirSync(uploadsDir, { recursive: true });
@@ -25179,19 +25319,32 @@ index 0000000000000000000000000000000000000000..029b2d7ea1e031778b7195f6c47fad3b
 +  }
 +});
 +
-+const upload = multer({ storage });
++const upload = multer({
++  storage,
++  limits: { fileSize: 5 * 1024 * 1024 },
++  fileFilter: (req, file, cb) => {
++    const ext = path.extname(file.originalname).toLowerCase();
++    if (!['.pdf', '.png', '.jpg', '.jpeg'].includes(ext)) {
++      return cb(new Error('Invalid file type'));
++    }
++    cb(null, true);
++  }
++});
 +const router = express.Router();
 +
-+router.post('/', upload.single('file'), (req, res) => {
-+  if (!req.file) return res.status(400).json({ success: false, error: 'No file' });
-+  const urlPath = `/uploads/${req.file.filename}`;
-+  res.json({
-+    success: true,
-+    data: {
-+      filename: req.file.filename,
-+      originalName: req.file.originalname,
-+      url: urlPath
-+    }
++router.post('/', auth, (req, res, next) => {
++  upload.single('file')(req, res, (err) => {
++    if (err) return res.status(400).json({ success: false, error: err.message });
++    if (!req.file) return res.status(400).json({ success: false, error: 'No file' });
++    const urlPath = `/uploads/${req.file.filename}`;
++    res.json({
++      success: true,
++      data: {
++        filename: req.file.filename,
++        originalName: req.file.originalname,
++        url: urlPath
++      }
++    });
 +  });
 +});
 +
@@ -25296,16 +25449,18 @@ index 0000000000000000000000000000000000000000..f6bcfb575f352bcac0346e4f80debac1
 +};
 diff --git a/tests/auth.test.js b/tests/auth.test.js
 new file mode 100644
-index 0000000000000000000000000000000000000000..3f26ebff0298b423471bc5219138cd7520a17055
+index 0000000000000000000000000000000000000000..5481db07a78c3eb25bd8a35f503707f7eae8c1e7
 --- /dev/null
 +++ b/tests/auth.test.js
-@@ -0,0 +1,28 @@
+@@ -0,0 +1,29 @@
 +const request = require('supertest');
 +const mongoose = require('mongoose');
 +const { app, connectDB } = require('../src/app');
++jest.setTimeout(10000);
 +
 +beforeAll(async () => {
 +  jest.spyOn(mongoose, 'connect').mockResolvedValue();
++  jest.spyOn(mongoose, 'disconnect').mockResolvedValue();
 +  await connectDB();
 +});
 +
@@ -25324,9 +25479,20 @@ index 0000000000000000000000000000000000000000..3f26ebff0298b423471bc5219138cd75
 +describe('claims endpoint', () => {
 +  it('returns sample claims', async () => {
 +    const res = await request(app).get('/api/v1/claims');
-+    expect(res.status).toBe(200);
-+    expect(Array.isArray(res.body.data)).toBe(true);
++    expect(res.status).toBe(401);
 +  });
++});
+diff --git a/tests/setupEnv.js b/tests/setupEnv.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..8f103427364d1420670f6efe9aefb676848c7fe9
+--- /dev/null
++++ b/tests/setupEnv.js
+@@ -0,0 +1,6 @@
++const path = require('path');
++require('dotenv-safe').config({
++  example: path.resolve(__dirname, '../.env.example'),
++  path: path.resolve(__dirname, '../.env.example'),
++  allowEmptyValues: true
 +});
  
 EOF
