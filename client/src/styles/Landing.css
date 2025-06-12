@@ -1,0 +1,59 @@
+.landing-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #f5f9fc;
+  color: #1b2a49;
+  padding: 2rem;
+}
+
+.hero {
+  max-width: 600px;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.hero h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.hero p {
+  font-size: 1.2rem;
+  margin-bottom: 1.5rem;
+}
+
+.btn-primary {
+  background: #0056b3;
+  color: #fff;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  text-decoration: none;
+}
+
+.btn-primary:hover {
+  background: #004494;
+}
+
+.why-us {
+  max-width: 800px;
+}
+
+.why-us h2 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.why-us ul {
+  list-style: none;
+  padding: 0;
+}
+
+.why-us li {
+  background: white;
+  margin: 0.5rem 0;
+  padding: 1rem;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}

@@ -1,0 +1,180 @@
+:root {
+  /* Claim Climbers brand colors */
+  --primary:   #004b87;   /* deep navy */
+  --secondary: #0072ce;   /* bright blue */
+  --accent:    #fdb813;   /* gold accent */
+  --bg:        #f5faff;   /* very light blue */
+  --text:      #112e51;   /* dark slate */
+  --link:      var(--secondary);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ---------------- Navigation ---------------- */
+.nav {
+  background: var(--primary);
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-logo img {
+  height: 40px;
+}
+
+.nav-links {
+  list-style: none;
+  display: flex;
+  gap: 1.5rem;
+}
+.nav-links a {
+  color: #0072ce;
+  font-weight: bold;
+  transition: opacity .2s;
+}
+.nav-links a:hover {
+  opacity: 0.8;
+}
+
+/* ---------------- Hero ---------------- */
+.hero {
+  background: var(--secondary);
+  color: #0072ce;
+  padding: 4rem 1rem;
+  text-align: center;
+}
+.hero-content {
+  max-width: 600px;
+  margin: 0 auto 2rem;
+}
+.hero-content h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+.hero-content p {
+  font-size: 1.125rem;
+  margin-bottom: 2rem;
+}
+
+/* ---------------- Buttons ---------------- */
+.btn-primary {
+  display: inline-block;
+  background: var(--accent);
+  color: var(--text);
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: bold;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: background .2s, transform .2s;
+}
+.btn-primary:hover {
+  background: #e0a500;
+  transform: translateY(-2px);
+}
+
+/* ---------------- Features ---------------- */
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  max-width: 1000px;
+  margin: 0 auto 4rem;
+  padding: 0 1rem;
+}
+.feature {
+  background: #fff;
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  transition: transform .2s, box-shadow .2s;
+  color: var(--text);
+}
+.feature h2 {
+  margin-bottom: 0.5rem;
+  color: var(--primary);
+}
+.feature p {
+  font-size: 0.95rem;
+}
+.feature:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* ---------------- Main Content Wrapper ---------------- */
+.main-content {
+  padding: 2rem 0;
+}
+
+/* ---------------- Page Utility ---------------- */
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 1rem 2rem;
+}
+
+/* ---------------- Dashboard Grid ---------------- */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin: 1.5rem 0;
+}
+.dashboard-grid .card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  padding: 1.5rem;
+  transition: transform .2s;
+}
+.dashboard-grid .card:hover {
+  transform: translateY(-4px);
+}
+
+/* ---------------- Forms ---------------- */
+form {
+  background: #fff;
+  border-radius: 6px;
+  padding: 2rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  margin: 1.5rem 0;
+}
+form label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+}
+form input,
+form select,
+form textarea {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+  padding: 0.6rem;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+/* ---------------- Footer ---------------- */
+.footer {
+  background: var(--primary);
+  color: #fff;
+  text-align: center;
+  padding: 2rem 1rem;
+  font-size: 0.9rem;
+}
