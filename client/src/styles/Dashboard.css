@@ -1,0 +1,16 @@
+/* client/src/pages/Dashboard.css */
+.dashboard {
+  padding: 2rem;
+}
+
+.claims-list {
+  list-style: disc inside;
+  margin-bottom: 2rem;
+}
+
+.dashboard-section {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--primary-color);
+  border-radius: 6px;
+}
