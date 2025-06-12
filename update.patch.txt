@@ -212,7 +212,7 @@ index 0000000000000000000000000000000000000000..c82bdb35032f4cb19cba3fdb6b1b49f9
 +- **Support** – how to contact us
 diff --git a/client/package-lock.json b/client/package-lock.json
 new file mode 100644
-index 0000000000000000000000000000000000000000..286caf0a2c2d23806b045d8da404b8d106f0a69b
+index 0000000000000000000000000000000000000000..e9804637d50671007af5f4e06aa0b187eb16003c
 --- /dev/null
 +++ b/client/package-lock.json
 @@ -0,0 +1,17530 @@
@@ -228,8 +228,8 @@ index 0000000000000000000000000000000000000000..286caf0a2c2d23806b045d8da404b8d1
 +      "dependencies": {
 +        "autoprefixer": "^10.4.16",
 +        "postcss": "^8.4.34",
-+        "react": "^18.2.0",
-+        "react-dom": "^18.2.0",
++        "react": "18.3.1",
++        "react-dom": "18.3.1",
 +        "react-router-dom": "^6.23.0",
 +        "react-scripts": "5.0.1",
 +        "react-toastify": "^9.1.3",
@@ -17748,7 +17748,7 @@ index 0000000000000000000000000000000000000000..286caf0a2c2d23806b045d8da404b8d1
 +}
 diff --git a/client/package.json b/client/package.json
 new file mode 100644
-index 0000000000000000000000000000000000000000..2996629defe5e1d9a99485d984449ae77db93609
+index 0000000000000000000000000000000000000000..87e9cf050a20e9578c0144192dfafe779e379e12
 --- /dev/null
 +++ b/client/package.json
 @@ -0,0 +1,36 @@
@@ -17757,8 +17757,8 @@ index 0000000000000000000000000000000000000000..2996629defe5e1d9a99485d984449ae7
 +  "version": "0.1.0",
 +  "private": true,
 +  "dependencies": {
-+    "react": "^18.2.0",
-+    "react-dom": "^18.2.0",
++    "react": "18.3.1",
++    "react-dom": "18.3.1",
 +    "react-router-dom": "^6.23.0",
 +    "react-scripts": "5.0.1",
 +    "react-toastify": "^9.1.3",
